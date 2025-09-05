@@ -39,6 +39,13 @@ Contributions are welcome! Feel free to fork the repository and submit a pull re
 4. Push to the branch (`git push origin feature/YourFeature`)
 5. Open a Pull Request
 
+<!-- Add screenshot or GIF here for extra appeal! -->
+<p align="center">
+  <img src="sc.png" width="600" alt="App demo screenshot">
+</p> 
+
+---
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
