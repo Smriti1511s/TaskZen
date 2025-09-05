@@ -41,7 +41,7 @@ Contributions are welcome! Feel free to fork the repository and submit a pull re
 
 <!-- Add screenshot or GIF here for extra appeal! -->
 <p align="center">
-  <img src="sc.png" width="600" alt="App demo screenshot">
+  <img src="todo-list.png" width="600" alt="App demo screenshot">
 </p> 
 
 ---
