@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FocusBoard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; }
+    .task-row { 
+      background: white; 
+      border-radius: 0.5rem; 
+      padding: 0.8rem 1rem; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      margin-bottom: 0.7rem;
+      border-left: 6px solid transparent;
+      transition: 0.2s;
+    }
+    .task-row.low { border-left-color: #22c55e; }     /* green */
+    .task-row.medium { border-left-color: #f59e0b; }  /* amber */
+    .task-row.high { border-left-color: #ef4444; }    /* red */
+    .task-row:hover { transform: translateX(3px); background: #f9fafb; }
+    .checkbox { width: 1.1rem; height: 1.1rem; accent-color: #2563eb; }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center p-6">
+  <!-- Header -->
+  <div class="w-full max-w-3xl">
+    <h1 class="text-3xl font-bold text-blue-700 mb-1">📋 FocusBoard</h1>
+    <p id="quote" class="text-sm text-gray-500 mb-4"></p>
+
+    <!-- Progress -->
+    <div class="w-full bg-gray-200 h-2 rounded-full mb-6">
+      <div id="progressBar" class="h-2 rounded-full bg-blue-600" style="width:0%"></div>
+    </div>
+
+    <!-- Add Task Inline -->
+    <div class="flex gap-2 mb-6">
+      <input id="taskText" type="text" placeholder="Add a new task..." class="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"/>
+      <input id="taskDate" type="date" class="p-2 border rounded-lg text-sm"/>
+      <select id="taskPriority" class="p-2 border rounded-lg text-sm">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+      <button id="addTaskBtn" class="bg-blue-600 text-white px-4 rounded-lg hover:bg-blue-700">Add</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="flex justify-between items-center mb-4 text-sm">
+      <div id="filters" class="flex gap-2">
+        <button data-filter="all" class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">All</button>
+        <button data-filter="active" class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">Pending</button>
+        <button data-filter="done" class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">Done</button>
+      </div>
+      <select id="sortBy" class="border rounded px-2 py-1 bg-gray-100 text-xs">
+        <option value="default">Sort By</option>
+        <option value="date">Due Date</option>
+        <option value="priority">Priority</option>
+      </select>
+    </div>
+
+    <!-- Task List -->
+    <div id="list" class="mb-2"></div>
+    <p id="summary" class="text-xs text-gray-500"></p>
+  </div>
+
+  <script>
+    const list = document.getElementById('list');
+    const taskText = document.getElementById('taskText');
+    const taskDate = document.getElementById('taskDate');
+    const taskPriority = document.getElementById('taskPriority');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const summary = document.getElementById('summary');
+    const filters = document.getElementById('filters');
+    const sortBy = document.getElementById('sortBy');
+    const progressBar = document.getElementById('progressBar');
+    const quote = document.getElementById('quote');
+
+    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    let filterState = localStorage.getItem('filter') || 'all';
+    let sortState = localStorage.getItem('sort') || 'default';
+
+    const quotes = [
+      "Work smart, not just hard.",
+      "Focus on progress, not perfection.",
+      "Clarity brings productivity.",
+      "Organize today, win tomorrow."
+    ];
+    quote.textContent = quotes[Math.floor(Math.random() * quotes.length)];
+
+    function saveToStorage() {
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      localStorage.setItem('filter', filterState);
+      localStorage.setItem('sort', sortState);
+    }
+
+    function render() {
+      list.innerHTML = "";
+      let items = [...tasks];
+
+      if (sortState === "date") {
+        items.sort((a,b) => (a.date || '9999-12-31').localeCompare(b.date || '9999-12-31'));
+      } else if (sortState === "priority") {
+        const order = {high:1, medium:2, low:3};
+        items.sort((a,b) => order[a.priority] - order[b.priority]);
+      }
+
+      if (filterState === "active") items = items.filter(t => !t.done);
+      if (filterState === "done") items = items.filter(t => t.done);
+
+      if (items.length === 0) {
+        list.innerHTML = `<p class="text-center text-gray-400 py-6">No tasks yet.</p>`;
+      } else {
+        items.forEach(t => {
+          const div = document.createElement("div");
+          div.className = `task-row ${t.priority}`;
+          div.innerHTML = `
+            <div class="flex items-center gap-3">
+              <input type="checkbox" class="checkbox" ${t.done ? "checked" : ""}>
+              <div>
+                <p class="${t.done ? 'line-through text-gray-400' : 'font-medium'}">${t.text}</p>
+                <span class="text-xs text-gray-500">${t.date ? new Date(t.date).toLocaleDateString() : ''}</span>
+              </div>
+            </div>
+            <div class="flex gap-2 text-sm">
+              <button class="edit text-blue-500 hover:text-blue-700">✎</button>
+              <button class="delete text-red-500 hover:text-red-700">🗑</button>
+            </div>`;
+          list.appendChild(div);
+
+          div.querySelector(".checkbox").addEventListener("change", () => {
+            t.done = !t.done; saveToStorage(); render();
+          });
+          div.querySelector(".delete").addEventListener("click", () => {
+            tasks = tasks.filter(x => x.id !== t.id); saveToStorage(); render();
+          });
+          div.querySelector(".edit").addEventListener("click", () => {
+            taskText.value = t.text;
+            taskDate.value = t.date || "";
+            taskPriority.value = t.priority;
+            tasks = tasks.filter(x => x.id !== t.id);
+            saveToStorage(); render();
+          });
+        });
+      }
+
+      const left = tasks.filter(t => !t.done).length;
+      const percent = tasks.length === 0 ? 0 : Math.round(((tasks.length - left) / tasks.length) * 100);
+      progressBar.style.width = percent + "%";
+
+      summary.textContent = tasks.length === 0
+        ? "Start by adding a task!"
+        : `${left} task(s) left · ${percent}% done`;
+    }
+
+    addTaskBtn.addEventListener("click", () => {
+      const text = taskText.value.trim();
+      if (!text) return;
+      tasks.unshift({id:Date.now(), text, date:taskDate.value, priority:taskPriority.value, done:false});
+      taskText.value = ""; taskDate.value = ""; taskPriority.value = "medium";
+      saveToStorage(); render();
+    });
+
+    filters.addEventListener("click", (e) => {
+      if (e.target.dataset.filter) {
+        filterState = e.target.dataset.filter;
+        saveToStorage(); render();
+      }
+    });
+    sortBy.addEventListener("change", (e) => {
+      sortState = e.target.value; saveToStorage(); render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
